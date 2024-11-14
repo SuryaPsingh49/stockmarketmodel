@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surya's Model of Stock Price Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(45deg, #ff8c00, #ff0080, #8000ff, #0080ff);
+            background-size: 400% 400%;
+            animation: gradient 10s ease infinite;
+            color: #333;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-attachment: fixed;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px); /* Adds blur effect to background */
+        }
+
+        h1 {
+            text-align: center;
+            color: #007bff;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 1.2em;
+            color: #555;
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto;
+            width: 100px; /* Adjust size as needed */
+        }
+
+        .form-container {
+            text-align: center;
+        }
+
+        input[type="text"], input[type="number"] {
+            padding: 10px;
+            margin: 10px 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 250px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .output-container {
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 12px;
+        }
+
+        th {
+            background-color: #f1f1f1;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+        }
+
+        #plotly-graph {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Update logo path to use Flask's static folder -->
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+    <h1>Surya's Model of Stock Price Prediction</h1>
+    <h2>Enter stock symbol and prediction period</h2>
+
+    <div class="form-container">
+        <input type="text" id="symbol" placeholder="Enter Stock Symbol (e.g., AAPL)" required>
+        <input type="number" id="period" placeholder="Enter Prediction Period (in days)" required>
+        <button onclick="getPrediction()">Get Prediction</button>
+    </div>
+
+    <div class="error" id="error-message" style="display: none;"></div>
+
+    <div class="output-container" id="output-container" style="display: none;">
+        <h3>Prediction Results</h3>
+        <table id="forecast-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Predicted Price</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div id="plotly-graph"></div>
+    </div>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<script>
+    async function getPrediction() {
+        const symbol = document.getElementById('symbol').value.toUpperCase();
+        const period = document.getElementById('period').value;
+
+        if (!symbol || !period) {
+            document.getElementById('error-message').style.display = 'block';
+            document.getElementById('error-message').innerText = 'Please enter both symbol and prediction period.';
+            return;
+        }
+
+        document.getElementById('error-message').style.display = 'none';
+        document.getElementById('output-container').style.display = 'none';
+
+        try {
+            const response = await fetch(`/predict?symbol=${symbol}&period=${period}`);
+            const data = await response.json();
+
+            if (data.forecast.length === 0) {
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-message').innerText = 'No data found for the given stock symbol.';
+                return;
+            }
+
+            const forecastTable = document.getElementById('forecast-table').getElementsByTagName('tbody')[0];
+            forecastTable.innerHTML = '';
+
+            data.forecast.forEach(item => {
+                const row = forecastTable.insertRow();
+                const dateCell = row.insertCell(0);
+                const priceCell = row.insertCell(1);
+                dateCell.innerHTML = item[0];
+                priceCell.innerHTML = item[1].toFixed(2);
+            });
+
+            // Display the Plotly graph
+            document.getElementById('plotly-graph').innerHTML = data.graph;
+            document.getElementById('output-container').style.display = 'block';
+        } catch (error) {
+            document.getElementById('error-message').style.display = 'block';
+            document.getElementById('error-message').innerText = 'Error fetching data from the API. Please try again.';
+        }
+    }
+</script>
+
+</body>
+</html>
